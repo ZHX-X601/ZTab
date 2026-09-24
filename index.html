@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZTab</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #F9F8F6;
+    --fg: #1C1C1C;
+    --fg-60: rgba(28, 28, 28, .6);
+    --fg-40: rgba(28, 28, 28, .4);
+    --fg-20: rgba(28, 28, 28, .2);
+    --fg-10: rgba(28, 28, 28, .1);
+  }
+
+  html, body { height: 100%; }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+    display: flex;
+    flex-direction: column;
+    animation: fade-in .8s ease both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    body { animation: none; }
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  .brand {
+    position: fixed;
+    top: 36px;
+    left: 48px;
+    font-family: Georgia, "Times New Roman", "Songti SC", "SimSun", serif;
+    font-size: 13px;
+    letter-spacing: .45em;
+    text-transform: uppercase;
+    color: var(--fg-40);
+    user-select: none;
+  }
+
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 24px;
+  }
+
+  .clock {
+    text-align: center;
+    margin-top: 12vh;
+  }
+
+  .time {
+    font-family: Georgia, "Times New Roman", "Songti SC", "SimSun", serif;
+    font-weight: 400;
+    font-size: clamp(88px, 13vw, 150px);
+    line-height: .95;
+    letter-spacing: -.02em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .date-label {
+    font-size: 12px;
+    letter-spacing: .4em;
+    color: var(--fg-40);
+    margin-top: 26px;
+  }
+
+  .search {
+    margin-top: 11vh;
+    width: 100%;
+    max-width: 480px;
+  }
+
+  .engine-wrap { position: relative; }
+
+  .engine-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    font-size: 12px;
+    letter-spacing: .3em;
+    color: var(--fg-60);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    position: relative;
+    transition: color .3s;
+  }
+
+  .engine-btn:hover { color: var(--fg); }
+
+  .engine-btn::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -5px;
+    height: 1px;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform .35s ease;
+  }
+
+  .engine-btn:hover::after {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+
+  .engine-btn .arrow {
+    width: 6px;
+    height: 6px;
+    border-right: 1px solid currentColor;
+    border-bottom: 1px solid currentColor;
+    transform: rotate(45deg) translateY(-2px);
+    transition: transform .3s ease;
+  }
+
+  .engine-wrap.open .arrow { transform: rotate(225deg) translateY(-2px); }
+
+  .engine-menu {
+    position: absolute;
+    top: calc(100% + 16px);
+    left: 0;
+    list-style: none;
+    background: var(--fg);
+    color: var(--bg);
+    min-width: 168px;
+    padding: 6px 0;
+    z-index: 10;
+  }
+
+  .engine-menu li {
+    font-size: 13px;
+    letter-spacing: .2em;
+    padding: 11px 20px;
+    cursor: pointer;
+    color: var(--bg);
+    opacity: .55;
+    transition: opacity .25s ease;
+  }
+
+  .engine-menu li:hover { opacity: .85; }
+  .engine-menu li[aria-selected="true"] { opacity: 1; }
+
+  .search-form { margin-top: 8px; }
+
+  .search-form input {
+    width: 100%;
+    background: none;
+    border: none;
+    border-bottom: 1px solid var(--fg-20);
+    border-radius: 0;
+    font-family: Georgia, "Times New Roman", "Songti SC", "SimSun", serif;
+    font-size: 22px;
+    color: var(--fg);
+    padding: 14px 2px;
+    outline: none;
+    transition: border-color .3s ease;
+  }
+
+  .search-form input::placeholder { color: var(--fg-40); }
+  .search-form input:focus { border-color: var(--fg); }
+
+  @media (max-width: 640px) {
+    .brand { top: 28px; left: 24px; }
+    .clock { margin-top: 10vh; }
+    .time { font-size: clamp(72px, 18vw, 104px); }
+    .search { margin-top: 9vh; }
+  }
+</style>
+</head>
+<body>
+
+<header class="brand">ZTab</header>
+
+<main>
+  <section class="clock" aria-label="当前时间">
+    <h1 class="time" id="time" aria-live="off">00:00</h1>
+    <p class="date-label" id="dateLabel"></p>
+  </section>
+
+  <section class="search">
+    <div class="engine-wrap" id="engineWrap">
+      <button type="button" class="engine-btn" id="engineBtn" aria-expanded="false" aria-haspopup="listbox">
+        <span id="engineName">必应</span><span class="arrow" aria-hidden="true"></span>
+      </button>
+      <ul class="engine-menu" id="engineMenu" role="listbox" aria-label="搜索引擎" hidden>
+        <li role="option" data-engine="bing" aria-selected="true">必应</li>
+        <li role="option" data-engine="baidu" aria-selected="false">百度</li>
+        <li role="option" data-engine="google" aria-selected="false">谷歌</li>
+      </ul>
+    </div>
+
+    <form class="search-form" id="searchForm">
+      <input id="q" type="text" placeholder="搜索…" autocomplete="off" spellcheck="false" autofocus aria-label="搜索关键词">
+    </form>
+  </section>
+</main>
+
+<script>
+  (function () {
+    "use strict";
+
+    /* ---------- 时钟 ---------- */
+    var timeEl = document.getElementById("time");
+    var dateEl = document.getElementById("dateLabel");
+    var WEEK = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
+
+    function pad(n) { return String(n).padStart(2, "0"); }
+
+    function tick() {
+      var now = new Date();
+      timeEl.textContent = pad(now.getHours()) + ":" + pad(now.getMinutes());
+      dateEl.textContent = now.getFullYear() + "年" + (now.getMonth() + 1) + "月" + now.getDate() + "日 · " + WEEK[now.getDay()];
+    }
+    tick();
+    setInterval(tick, 10000);
+
+    /* ---------- 搜索 ---------- */
+    var ENGINES = {
+      bing:   { name: "必应", url: function (q) { return "https://www.bing.com/search?q=" + encodeURIComponent(q); } },
+      baidu:  { name: "百度", url: function (q) { return "https://www.baidu.com/s?wd=" + encodeURIComponent(q); } },
+      google: { name: "谷歌", url: function (q) { return "https://www.google.com/search?q=" + encodeURIComponent(q); } }
+    };
+
+    var current = localStorage.getItem("ztab.engine");
+    if (!ENGINES[current]) { current = "bing"; }
+
+    var wrap = document.getElementById("engineWrap");
+    var btn = document.getElementById("engineBtn");
+    var menu = document.getElementById("engineMenu");
+    var nameEl = document.getElementById("engineName");
+
+    function setEngine(key) {
+      current = key;
+      localStorage.setItem("ztab.engine", key);
+      nameEl.textContent = ENGINES[key].name;
+      Array.prototype.forEach.call(menu.children, function (li) {
+        li.setAttribute("aria-selected", li.dataset.engine === key);
+      });
+    }
+
+    function closeMenu() {
+      menu.hidden = true;
+      wrap.classList.remove("open");
+      btn.setAttribute("aria-expanded", "false");
+    }
+
+    function toggleMenu() {
+      var opening = menu.hidden;
+      menu.hidden = !opening;
+      wrap.classList.toggle("open", opening);
+      btn.setAttribute("aria-expanded", opening);
+    }
+
+    btn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      toggleMenu();
+    });
+
+    menu.addEventListener("click", function (e) {
+      var li = e.target.closest("li");
+      if (!li) { return; }
+      setEngine(li.dataset.engine);
+      closeMenu();
+    });
+
+    document.addEventListener("click", function (e) {
+      if (!wrap.contains(e.target)) { closeMenu(); }
+    });
+
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") { closeMenu(); }
+    });
+
+    document.getElementById("searchForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      var q = document.getElementById("q").value.trim();
+      if (!q) { return; }
+      window.location.href = ENGINES[current].url(q);
+    });
+
+    setEngine(current);
+  })();
+</script>
+</body>
+</html>
